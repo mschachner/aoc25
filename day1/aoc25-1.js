@@ -25,10 +25,10 @@ function zeroPartials(sequence) {
 // testSequence = [-68, -30, 48, -5, 60, -55, -1, -99, 14, -82];
 // console.log(zeroPartials(testSequence)); // returns 3
 
-// Read in doc.txt and output the integer sequence.
+// Read in input.txt and output the integer sequence.
 
-function integerize() {
-    const data = readFileSync('doc.txt','utf8');
+function integerize(fileName) {
+    const data = readFileSync(fileName,'utf8');
     let instructions = data.split("\n");
     let integerized = [];
     for (var i of instructions) {
@@ -39,7 +39,7 @@ function integerize() {
     return integerized;
 }
 
-const instructions = integerize();
+const instructions = integerize('input.txt');
 
 // Put em together
 

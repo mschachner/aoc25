@@ -1,4 +1,4 @@
-/* Advent of Code 2025 Day 1: ID Filtering */
+/* Advent of Code 2025 Day 2: ID Filtering */
 
 /* Part 1: given a sequence of ranges, identify all invalid numbers and sum them. 
  * A number is invalid if it's a concatenation of some number with itself.
@@ -55,8 +55,8 @@ function parseRanges(data) {
 
 // console.log(parseRanges("11-22,95-115,998-1012")); // [[11,22],[95,115],[998,1012]]
 
-function sumInvalidsFromDoc(invalidTest) {
-    const data = readFileSync('doc.txt','utf8');
+function sumInvalidsFromFile(fileName, invalidTest) {
+    const data = readFileSync(fileName,'utf8');
     const ranges = parseRanges(data);
     let total = 0;
     for (var range of ranges) {
@@ -65,7 +65,7 @@ function sumInvalidsFromDoc(invalidTest) {
     return total;
 }
 
-// console.log(sumInvalidsFromDoc(isInvalid)); // 12850231731
+console.log(sumInvalidsFromFile('input.txt',isInvalid)); // 12850231731
 
 /* Part 2: same as before except now we want to forbid multiples like 101101101.
  */
@@ -91,4 +91,4 @@ function isInvalidMult(num) {
 
 // Now part 2 is easy.
 
-console.log(sumInvalidsFromDoc(isInvalidMult)); // 24774350322
+console.log(sumInvalidsFromFile('input.txt',isInvalidMult)); // 24774350322
