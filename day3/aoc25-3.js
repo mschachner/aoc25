@@ -48,7 +48,7 @@ console.log(sumJoltagesFromFile(joltage,'input.txt')); // 17092
 function joltageN(N,digitString) {
     let digits = [];
     let workingArray = Array.from(digitString);
-    for (var i = 0; i < N; i++) {
+    for (let i = 0; i < N; i++) {
         let digit = greatest(workingArray,N-1-i);
         digits.push(digit.value);
         workingArray = workingArray.slice(digit.index+1);
