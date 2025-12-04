@@ -9,10 +9,16 @@ class Grid {
         this.rows = lines.length;
         this.columns = lines[0].length;
         this.grid = new Array(this.rows);
+        this.rolls = new Set();
         for (let i=0; i < this.rows; i++) {
             this.grid[i] = new Array(this.columns);
             for (let j=0; j < this.columns; j++) {
-                this.grid[i][j] = (lines[i][j] == '@' ? 1 : 0);
+                if (lines[i][j] == '@') {
+                    this.grid[i][j] = 1;
+                    this.rolls.add([i,j]);
+                } else {
+                    this.grid[i][j] = 0;
+                }
             }
         }
     }
@@ -20,56 +26,57 @@ class Grid {
     rowRange = () => [...Array(this.rows).keys()];
     colRange = () => [...Array(this.columns).keys()];
 
-    allCells = () => this.rowRange().map((i) => (
-        this.colRange().map((j) => [i,j])
-    )).flat();
-
-    getValue = (cell) => this.grid[cell[0]][cell[1]];
-
-    zeroValues(cells) {
-        for (let cell of cells) {
-            this.grid[cell[0]][cell[1]] = 0;
-        }
-    }
-
-    inBounds = (cell) => (
-        this.rowRange().includes(cell[0]) && this.colRange().includes(cell[1])
-    );
-
-    neighborhood(cell) {
+    neighborhoodSum(cell) {
         let i = cell[0];
         let j = cell[1];
         return [
             [i-1,j-1],[i-1,j],[i-1,j+1],
             [i  ,j-1],        [i  ,j+1],
             [i+1,j-1],[i+1,j],[i+1,j+1]
-        ].filter(this.inBounds);
-    };
+        ].filter((c) => (
+            this.rowRange().includes(c[0]) && this.colRange().includes(c[1])
+        )).map(c => this.grid[c[0]][c[1]]).reduce((a,b) => a+b);
+    }
 
-    neighborhoodSum = (cell) => (
-        this.neighborhood(cell).map(
-            (cell) => this.getValue(cell)
-        ).reduce((a,b) => a+b)
-    )
+    isMovable = (roll) => (this.neighborhoodSum(roll) < 4)
 
-    isMovable = (cell) => (this.neighborhoodSum(cell) < 4 && this.getValue(cell) == 1)
-    getMovables = () => this.allCells().filter(this.isMovable);
+    deleteRolls(toRemove) {
+        toRemove.forEach(c => {
+            this.grid[c[0]][c[1]] = 0;
+        })
+        this.rolls = this.rolls.difference(toRemove);
+        return toRemove;
+    }
+
+    move() {
+        let moved = new Set();
+        this.rolls.forEach(roll => {
+            if (this.isMovable(roll)) {
+                moved.add(roll);
+            }
+        })
+        return this.deleteRolls(moved);
+    }
 
     moveAllMovables() {
         let total = 0;
-        let newMovables = [];
+        let done = false;
         do {
-            newMovables = this.getMovables();
-            this.zeroValues(newMovables);
-            total += newMovables.length;
-            console.log("moved " + newMovables.length + " rolls");
-        } while (newMovables.length);
+            done = true;
+            for (let cell of this.rolls) {
+                if (this.isMovable(cell)) {
+                    done = false;
+                    this.deleteRolls(new Set([cell]));
+                    total++;
+                }
+            }
+        } while (!done);
         return total;
     }
 }
 
-//console.log(new Grid('input_test.txt').getMovables().length); // 13
-console.log(new Grid('input.txt').popMovables()); // 1320
+//console.log(new Grid('input_test.txt').move().size); // 13
+console.log(new Grid('input.txt').move().size); // 1320
 
 //console.log(new Grid('input_test.txt').moveAllMovables()); // 43
 console.log(new Grid('input.txt').moveAllMovables()); // 8354
