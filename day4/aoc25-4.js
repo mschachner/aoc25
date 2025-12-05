@@ -33,12 +33,12 @@ class Grid {
             [i-1,j-1],[i-1,j],[i-1,j+1],
             [i  ,j-1],        [i  ,j+1],
             [i+1,j-1],[i+1,j],[i+1,j+1]
-        ].filter((c) => (
+        ].filter(c => 
             this.rowRange().includes(c[0]) && this.colRange().includes(c[1])
-        )).map(c => this.grid[c[0]][c[1]]).reduce((a,b) => a+b);
+        ).map(c => this.grid[c[0]][c[1]]).reduce((a,b) => a+b);
     }
 
-    isMovable = (roll) => (this.neighborhoodSum(roll) < 4)
+    isMovable = roll => (this.neighborhoodSum(roll) < 4)
 
     deleteRolls(toRemove) {
         toRemove.forEach(c => {
