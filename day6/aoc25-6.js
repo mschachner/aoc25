@@ -33,7 +33,7 @@ function doCephalopodMath(fileName) {
 }
 
 // console.log(doCephalopodMath('input_test.txt')); // 4277556
-// console.log(doCephalopodMath('input.txt')); // 5322004718681
+console.log(doCephalopodMath('input.txt')); // 5322004718681
 
 /* Part 2: turns out cephalopod math works a lot differently than we thought.
  */
@@ -41,25 +41,21 @@ function doCephalopodMath(fileName) {
 function doCephalopodMathCorrectly(fileName) {
     const lines = transpose(readFileSync(fileName,'utf8').split('\n'));
     lines.push([' ']); // Add terminator for last problem
-    let problem = {
-        "args": [],
-        "op": null,
-    }
-    let total = 0;
+    let args = [], total = 0, op = null;
     for (let line of lines) {
         if (line.every(a => a == ' ')) {
             // Problem's over
-            total += problem.args.reduce(problem.op);
-            problem.args = [];
-            problem.op = null;
+            total += args.reduce(op);
+            args = [];
+            op = null;
             continue;
         }
-        if (problem.op == null) {
+        if (op == null) {
             // It's only just begun
-            problem.op = line.pop()
-            problem.op = problem.op == '+' ? (a,b) => a+b : (a,b) => a*b;
+            op = line.pop()
+            op = op == '+' ? (a,b) => a+b : (a,b) => a*b;
         }
-        problem.args.push(Number(line.join("")));
+        args.push(Number(line.join("")));
     }
     return total;
 }
