@@ -22,8 +22,8 @@ class Playground {
                 loc01 = this.locations[p0[1]],
                 loc10 = this.locations[p1[0]],
                 loc11 = this.locations[p1[1]];
-            let d0 = Math.sqrt([0,1,2].map(i => (loc00[i] - loc01[i])**2).reduce((a,b) => a+b)),
-                d1 = Math.sqrt([0,1,2].map(i => (loc10[i] - loc11[i])**2).reduce((a,b) => a+b));
+            let d0 = [0,1,2].map(i => (loc00[i] - loc01[i])**2).reduce((a,b) => a+b),
+                d1 = [0,1,2].map(i => (loc10[i] - loc11[i])**2).reduce((a,b) => a+b);
             return d0-d1;
             })
     }
@@ -32,11 +32,11 @@ class Playground {
         for (let i = 0; i < count; i++) {
             let c0 = this.circuits.findIndex(c => c.includes(this.pairs[this.bookmark][0])),
                 c1 = this.circuits.findIndex(c => c.includes(this.pairs[this.bookmark][1]));
-            this.bookmark++;
             if (c0 != c1) {
                 this.circuits[c0] = this.circuits[c0].concat(this.circuits[c1]);
                 this.circuits.splice(c1,1);
             };
+            this.bookmark++;
         }
     }
 
@@ -60,4 +60,4 @@ let playground = new Playground('input.txt');
 //playground.connect(1000);
 //console.log(playground.circuits);
 //console.log(playground.topThreeProduct()); // 175500
-console.log(playground.finalXCoords());
+console.log(playground.finalXCoords()); // 6934702555
