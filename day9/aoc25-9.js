@@ -158,10 +158,10 @@ function getWalls(pts) {
 }
 
 function part2(fileName) {
-    // Step 0. Read the data.
     const data = readFileSync(fileName,'utf8').split('\n').map(
         line => line.split(',').map(Number)
-    ).map(pt => [pt[1],pt[0]]);
+    ).map(pt => [pt[1],pt[0]]); // Transpose because our solution only works for one direction
+
     let walls = getWalls(data), walls0 = walls.walls0, walls1 = walls.walls1;
     let maxArea = 0;
     for (let i = 0; i < data.length; i++) {
