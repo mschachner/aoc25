@@ -1,25 +1,42 @@
 /* Advent of Code 2025 Day 12: Christmas Tree Farm */
 
 const colors = {
-    "red": "\x1b[1;91m",
-    "green": "\x1b[1;92m",
-    "yellow": "\x1b[1;93m",
-    "blue": "\x1b[1;94m",
-    "magenta": "\x1b[1;95m",
-    "cyan": "\x1b[1;96m",
-    "white": "\x1b[97m",
+    "red": "\x1b[1;38;2;255;0;0m",
+    "crimson": "\x1b[1;38;2;220;20;60m",
     "orange": "\x1b[1;38;2;255;140;0m",
+    "amber": "\x1b[1;38;2;255;191;0m",
+    "gold": "\x1b[1;38;2;255;215;0m",
+    "yellow": "\x1b[1;38;2;255;255;0m",
+    "chartreuse": "\x1b[1;38;2;127;255;0m",
+    "lime": "\x1b[1;38;2;50;255;50m",
+    "green": "\x1b[1;38;2;0;255;0m",
+    "teal": "\x1b[1;38;2;0;200;200m",
+    "aqua": "\x1b[1;38;2;0;255;255m",
+    "cyan": "\x1b[1;38;2;0;255;255m",
+    "turquoise": "\x1b[1;38;2;64;224;208m",
+    "blue": "\x1b[1;38;2;0;0;255m",
+    "indigo": "\x1b[1;38;2;75;0;130m",
+    "violet": "\x1b[1;38;2;148;0;211m",
+    "lavender": "\x1b[1;38;2;181;126;220m",
+    "magenta": "\x1b[1;38;2;255;0;255m",
     "pink": "\x1b[1;38;2;255;20;147m",
+    "coral": "\x1b[1;38;2;255;127;80m",
+    "white": "\x1b[97m",
     "reset": "\x1b[0m"
 }
 
-function color(text, color) {
-    return `${colors[color]}${text}${colors.reset}`
+function colorPad(text, color, pad=0) {
+    let padded = text;
+    if (text.length < pad) {
+        padded = padded + ' '.repeat(pad - text.length);
+    }
+    
+    return `${colors[color]}${padded}${colors.reset}`
 }
 
 function randomColor() {
-    let possibilities = ["green", "yellow", "magenta", "red"]
-    return possibilities[Math.floor(Math.random() * 4)]
+    let possibilities = Object.keys(colors).filter(k => k !== "white" && k !== "reset");
+    return possibilities[Math.floor(Math.random() * possibilities.length)]
 }
 
 function colorGrid(grid, colorData) {
@@ -27,32 +44,28 @@ function colorGrid(grid, colorData) {
     for (let i = 0; i < grid.length; i++) {
         coloredGrid[i] = new Array(grid[i].length);
         for (let j = 0; j < grid[i].length; j++) {
-            coloredGrid[i][j] = color(grid[i][j], colorData[i][j]);
+            coloredGrid[i][j] = colorPad(grid[i][j], colorData[i][j]);
         }
     }
     return coloredGrid;
 }
 
-function gridsCollide(grid0,grid1) {
-    if (grid0.length != grid1.length || grid0[0].length != grid1[0].length) {
-        throw new Error("Error: grids must be same size")
-    }
-    for (let i = 0; i < grid0.length; i++) {
-        for (let j = 0; j < grid0[0].length; j++) {
-            if (grid0[i][j] == 1) {
-                if (grid1[i][j] == 1) {
-                    return true;
-                }
+function activeCells(schematic) {
+    let cells = []
+    for (let i = 0; i < schematic.length; i++) {
+        for (let j = 0; j < schematic[0].length; j++) {
+            if (schematic[i][j]) {
+                cells.push([i,j]);
             }
         }
     }
-    return false;
+    return cells;
 }
 
 
 
 class Region {
-    constructor(height, width) {
+    constructor(height, width, presents=[]) {
         this.height = height;
         this.width = width;
         this.grid = new Array(height);
@@ -61,18 +74,20 @@ class Region {
             this.grid[i] = new Array(width).fill(0);
             this.colorData[i] = new Array(width).fill("white");
         }
-        this.placements = []
+        this.presents = presents;
+        this.placements = [];
     }
 
     toString() {
+        let p = String(this.height).length;
         return `${this.height} by ${this.width} gift region\n`
                 + "~".repeat(this.width*3) + "\n    "
-                + [...Array(this.width).keys()].map(n => color(n,"blue")).join(" ") + '\n'
-                +`  +${"-".repeat(this.width*2+1)}+\n`
+                + ' '.repeat(p-1) + [...Array(this.width).keys()].map(n => colorPad(n,"blue")).join(" ") + '\n'
+                +`${' '.repeat(p+1)}+${"-".repeat(this.width*2+1)}+\n`
                 + colorGrid(this.grid, this.colorData)
-                    .map((row,index) => `${color(index,"blue")} | ` + row.join(' '))
+                    .map((row,index) => `${colorPad(String(index),"blue",2)} | ` + row.join(' '))
                     .join(" |\n") + " |\n"
-                +`  +${"-".repeat(this.width*2+1)}+`
+                +`${' '.repeat(p+1)}+${"-".repeat(this.width*2+1)}+`
     }
 
     disp() {
@@ -97,6 +112,14 @@ class Region {
         }
     }
 
+    getPresent(id) {
+        return this.presents.find(p => p.id == id);
+    }
+
+    getSchematic(placement) {
+        return this.getPresent(placement.id).schematics[placement.schematic];
+    }
+
     nextPair(pair,bufferHeight,bufferWidth) {
         let [r,c] = pair;
         if (c < this.width - bufferWidth) {
@@ -108,19 +131,23 @@ class Region {
         }
     }
 
-    canPlace(placement) {
-        let subregion;
-        let origin = placement.origin,
-            present = placement.present;
-        try {
-            subregion = this.getSubregion(origin,present.height,present.width)
-        } catch (e) {
-            console.error(
-                `Subregion out of bounds error when attempting to place present ${present.id} at (${origin})`
-            )
-            return false;
+    generatePresentList(counts) {
+        let presents = [];
+        for (let i = 0; i < counts.length; i++) {
+            for (let j = 0; j < counts[i]; j++) {
+                presents.push(this.presents[i])
+            }
         }
-        return (!gridsCollide(subregion,present.schematic));
+        return presents;
+    }
+
+    isValidPlacement(placement) {
+        let [r0,c0] = placement.origin;
+        let schematic = this.getSchematic(placement)
+        for (let [r,c] of activeCells(schematic)) {
+            if (this.colorData[r0+r][c0+c] != "white") return false;
+        }
+        return true;
     }
 
     doPlacement(placement) {
@@ -129,17 +156,17 @@ class Region {
                 `Error: placement is null`
             )
         }
-        if (!this.canPlace(placement)) {
+        if (!this.isValidPlacement(placement)) {
             throw new Error(
-                `Error: could not place present ${present.id} at (${r0},${c0})`
-                )
+                `Error: invalid placement`
+            )
         }
         let [r0,c0] = placement.origin,
-            present = placement.present;
+            schematic = this.getSchematic(placement);
 
-        for (let [r,c] of present.activeCells) {
-            this.grid[r0 + r][c0 + c] = 1;
-            this.colorData[r0 + r][c0 + c] = present.color;
+        for (let [r,c] of activeCells(schematic)) {
+            this.grid[r0 + r][c0 + c] = placement.id;
+            this.colorData[r0 + r][c0 + c] = placement.color;
         }
 
         this.placements.push(placement);
@@ -149,46 +176,58 @@ class Region {
     popPlacement() {
         let placement = this.placements.pop();
         let [r0,c0] = placement.origin,
-            present = placement.present;
+            schematic = this.getSchematic(placement);
 
-        for (let [r,c] of present.activeCells) {
+        for (let [r,c] of activeCells(schematic)) {
             this.grid[r0 + r][c0 + c] = 0;
             this.colorData[r0+r][c0+c] = "white"
         }
     }
 
-    findPlacement(present,startOrigin) {
+    findPlacement(present,startOrigin,startSchematic) {
         let placement = {
-            origin: startOrigin,
-            present: present
-        };
-        while (!this.canPlace(placement)) {
-            let next = this.nextPair(placement.origin,present.height,present.width);
-            if (next == null) {
-                return null;
-            }
-            placement.origin = next;
+            id: present.id,
+            color: randomColor()
         }
-        return placement;
+        for (let og = startOrigin; og != null; og = this.nextPair(og,present.height,present.width)) {
+            placement.origin = og;
+            for (let sch = startSchematic; sch < present.schematics.length; sch++) {
+                placement.schematic = sch;
+                if (this.isValidPlacement(placement)) {
+                    return placement;
+                }
+            }
+        }
+        return null;
     }
 
-    findPlacements(presents,startOrigin=[0,0]) {
+    findPlacements(presents,startOrigin=[0,0],depth) {
         if (presents.length == 0) {
             return []
         }
         let present = presents[0]
-        while (true) {
-            let placement = this.findPlacement(present,startOrigin);
-            if (placement == null) {
-                return null;
-            }
-            this.doPlacement(placement);
-            let remainingPlacements = this.findPlacements(presents.slice(1),[0,0])
-            if (remainingPlacements == null) {
-                let poppedOrigin = this.popPlacement().origin
-                startOrigin = this.nextPair(poppedOrigin,present.height,present.width)
-            } else {
-                return [placement].concat(remainingPlacements);
+        let placement = null;
+        for (let og = startOrigin; og != null; og = this.nextPair(og,present.height,present.width)) {
+            for (let sch = 0; sch < present.schematics.length; sch++) {
+                placement = this.findPlacement(present,og,sch);
+                if (placement != null) {
+                    this.doPlacement(placement);
+                    if (depth < 4) {
+                        this.disp()
+                        console.log(`Trying piece ${depth} in position ${og}...`)
+                    }
+                    let nextOrigin = [0,0]
+                    if (presents.length > 1 && presents[1].id == present.id) {
+                        nextOrigin = this.nextPair(og,present.height,present.width);
+                    }
+                    let remainingPlacements = this.findPlacements(presents.slice(1),nextOrigin,depth+1);
+                    if (remainingPlacements != null) {
+                        // success!
+                        return [placement].concat(remainingPlacements); 
+                    }
+                    // Otherwise, we've failed and need to pop off the placement.
+                    this.popPlacement();
+                }
             }
         }
     }
@@ -196,26 +235,19 @@ class Region {
 
 
 class Present {
-    constructor(id,schematic) {
-        this.height = schematic.length;
-        this.width = schematic[0].length;
+    constructor(id,schematics) {
+        this.height = schematics[0].length;
+        this.width = schematics[0][0].length;
         this.id = id;
-        this.schematic = schematic;
+        this.schematics = schematics;
         this.color = randomColor();
-        this.activeCells = [];
-        for (let i = 0; i < this.height; i++) {
-            for (let j = 0; j < this.width; j++) {
-                if (schematic[i][j]) {
-                    this.activeCells.push([i,j]);
-                }
-            }
         }
-    }
 
     toString() {
-        let colorData = this.schematic.map(row => row.map(element => element == 0 ? "black" : this.color))
-        let coloredGrid = colorGrid(this.schematic,colorData)
-        return `Present ${this.id}:\n${coloredGrid.map(row => row.join(' ')).join('\n')}`
+        let sampleSchematic = this.schematics[0];
+        let colorData = sampleSchematic.map(row => row.map(element => element == 0 ? "white" : this.color))
+        let coloredGrid = colorGrid(sampleSchematic,colorData)
+        return `Present: ${this.id}\nSample schematic:\n${coloredGrid.map(row => row.join(' ')).join('\n')}`
     }
 
     disp() {
@@ -225,16 +257,127 @@ class Present {
 
 // testing
 
-let region = new Region(5,12);
-let present0 = new Present(4,
-    [[0,0,0],
-     [0,1,0],
-     [0,1,1]]
-)
-let present1 = new Present(5,
-    [[0,0,0],
-     [1,1,0],
-     [0,1,1]]
-)
-region.findPlacements([present0,present1],[0,0]);
-region.disp();
+let present0 = new Present(0,
+    [[[1,1,1],
+      [1,1,0],
+      [1,1,0]],
+     [[1,1,1],
+      [1,1,1],
+      [0,0,1]],
+     [[0,1,1],
+      [0,1,1],
+      [1,1,1]],
+     [[1,0,0],
+      [1,1,1],
+      [1,1,1]],
+     [[1,1,1],
+      [0,1,1],
+      [0,1,1]],
+     [[0,0,1],
+      [1,1,1],
+      [1,1,1]],
+     [[1,1,0],
+      [1,1,0],
+      [1,1,1]],
+     [[1,1,1],
+      [1,1,1],
+      [1,0,0]],]
+);
+
+let present1 = new Present(1,
+    [[[1,1,1],
+      [1,1,0],
+      [0,1,1]],
+     [[0,1,1],
+      [1,1,1],
+      [1,0,1]],
+     [[1,1,0],
+      [0,1,1],
+      [1,1,1]],
+     [[1,0,1],
+      [1,1,1],
+      [1,1,0]],
+     [[1,1,1],
+      [0,1,1],
+      [1,1,0]],
+     [[1,0,1],
+      [1,1,1],
+      [0,1,1]],
+     [[0,1,1],
+      [1,1,0],
+      [1,1,1]],
+     [[1,1,0],
+      [1,1,1],
+      [1,0,1]],]
+);
+
+let present2 = new Present(2,
+    [[[0,1,1],
+      [1,1,1],
+      [1,1,0]],
+     [[1,1,0],
+      [1,1,1],
+      [0,1,1]],]
+);
+
+let present3 = new Present(3,
+    [[[1,1,0],
+      [1,1,1],
+      [1,1,0]],
+     [[1,1,1],
+      [1,1,1],
+      [0,1,0]],
+     [[0,1,1],
+      [1,1,1],
+      [0,1,1]],
+     [[0,1,0],
+      [1,1,1],
+      [1,1,1]]]
+);
+
+let present4 = new Present(4,
+    [[[1,1,1],
+      [1,0,0],
+      [1,1,1]],
+     [[1,1,1],
+      [1,0,1],
+      [1,0,1]],
+     [[1,1,1],
+      [0,0,1],
+      [1,1,1]],
+     [[1,0,1],
+      [1,0,1],
+      [1,1,1]]]
+);
+
+let present5 = new Present(5,
+    [[[1,1,1],
+      [0,1,0],
+      [1,1,1]],
+     [[1,0,1],
+      [1,1,1],
+      [1,0,1]]]
+);
+
+let presents = [present0,present1,present2,present3,present4,present5]
+let region0 = new Region(4,4,presents);
+let region1 = new Region(12,5,presents);
+
+
+let plist0 = region0.generatePresentList([0,0,0,0,2,0]);
+let plist1 = region1.generatePresentList([1,0,1,0,3,2]);
+
+
+
+region0.findPlacements(plist0);
+region0.disp();
+
+region1.findPlacements(plist1,[0,0],0);
+region1.disp();
+
+
+/*
+4x4: 0 0 0 0 2 0
+12x5: 1 0 1 0 2 2
+12x5: 1 0 1 0 3 2
+*/
